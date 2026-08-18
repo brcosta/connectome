@@ -30,6 +30,8 @@ def location(uri, line):
 
 def file_uri(path):
     path = path.replace("\\", "/")
+    if path.startswith("//?/"):
+        path = path[4:]
     return "file://" + path if path.startswith("/") else "file:///" + path
 
 
