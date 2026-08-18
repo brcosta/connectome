@@ -81,7 +81,50 @@ pub fn resolve_calls(
             ),
             "clojure-lsp",
         ),
+        (
+            Language::JavaScript,
+            effective_command(
+                options.typescript_lsp_command.as_deref(),
+                "CONNECTOME_TYPESCRIPT_LSP_COMMAND",
+                "typescript-language-server --stdio",
+                options.lsp_mode,
+            ),
+            "typescript-language-server",
+        ),
+        (
+            Language::TypeScript,
+            effective_command(
+                options.typescript_lsp_command.as_deref(),
+                "CONNECTOME_TYPESCRIPT_LSP_COMMAND",
+                "typescript-language-server --stdio",
+                options.lsp_mode,
+            ),
+            "typescript-language-server",
+        ),
+        (
+            Language::Rust,
+            effective_command(
+                options.rust_analyzer_command.as_deref(),
+                "CONNECTOME_RUST_ANALYZER_COMMAND",
+                "rust-analyzer",
+                options.lsp_mode,
+            ),
+            "rust-analyzer",
+        ),
+        (
+            Language::Dart,
+            effective_command(
+                options.dart_lsp_command.as_deref(),
+                "CONNECTOME_DART_LSP_COMMAND",
+                "dart language-server --protocol=lsp",
+                options.lsp_mode,
+            ),
+            "dart-language-server",
+        ),
     ] {
+        if !files.iter().any(|file| file.language == language) {
+            continue;
+        }
         let Some(command) = command else {
             if options.lsp_mode == LspMode::On {
                 result.warnings.push(format!("{label} is not available"));

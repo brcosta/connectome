@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub const INDEX_VERSION: u16 = 8;
+pub const INDEX_VERSION: u16 = 9;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Index {
@@ -32,6 +32,10 @@ pub struct FileRecord {
 pub enum Language {
     Java,
     Clojure,
+    JavaScript,
+    TypeScript,
+    Rust,
+    Dart,
 }
 
 impl Language {
@@ -39,6 +43,10 @@ impl Language {
         match self {
             Self::Java => "java",
             Self::Clojure => "clojure",
+            Self::JavaScript => "javascript",
+            Self::TypeScript => "typescript",
+            Self::Rust => "rust",
+            Self::Dart => "dart",
         }
     }
 }

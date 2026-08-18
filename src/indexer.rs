@@ -14,6 +14,9 @@ use std::time::Instant;
 pub struct BuildOptions {
     pub jdtls_command: Option<String>,
     pub clojure_lsp_command: Option<String>,
+    pub typescript_lsp_command: Option<String>,
+    pub rust_analyzer_command: Option<String>,
+    pub dart_lsp_command: Option<String>,
     pub lsp_timeout_ms: u64,
     pub lsp_mode: lsp::LspMode,
 }
@@ -186,7 +189,7 @@ pub fn build_with_options(root: &Path, options: &BuildOptions) -> Result<Index> 
 
     if files.is_empty() {
         return Err(anyhow!(
-            "no Java or Clojure source files found under {}",
+            "no supported source files found under {}",
             root.display()
         ));
     }

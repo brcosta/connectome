@@ -3,7 +3,7 @@
 <p align="center">
   <img src="assets/connectome-logo.png" width="260" alt="Connectome colorful fiber-network logo" />
   <br />
-  <strong>Fast semantic navigation for Java and Clojure coding agents.</strong><br />
+  <strong>Fast semantic navigation for Java, Clojure, JavaScript, TypeScript, Rust, and Dart coding agents.</strong><br />
   A compact local MCP that replaces broad repository search with precise symbols, source ranges, and bounded call paths.
 </p>
 
@@ -11,22 +11,22 @@
   <a href="https://github.com/brcosta/connectome/actions/workflows/ci.yml"><img src="https://github.com/brcosta/connectome/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <a href="https://github.com/brcosta/connectome/releases"><img src="https://img.shields.io/github/v/release/brcosta/connectome?display_name=tag" alt="Latest release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license" /></a>
-  <img src="https://img.shields.io/badge/languages-Java%20%7C%20Clojure-6f42c1" alt="Supported languages" />
+  <img src="https://img.shields.io/badge/languages-Java%20%7C%20Clojure%20%7C%20JS%2FTS%20%7C%20Rust%20%7C%20Dart-6f42c1" alt="Supported languages" />
 </p>
 
 > **Search less. Navigate with evidence. Spend fewer tokens.**
 
 Connectome is a small, local code-intelligence MCP server built for coding
-agents. It turns Java and Clojure repositories into a compact semantic index,
+agents. It turns Java, Clojure, JavaScript, TypeScript, Rust, and Dart repositories into a compact semantic index,
 then answers navigation questions with the smallest useful payload.
 
-`mcp` · `code-intelligence` · `java` · `clojure` · `tree-sitter` · `jdtls` · `clojure-lsp` · `coding-agents`
+`mcp` · `code-intelligence` · `java` · `clojure` · `javascript` · `typescript` · `rust` · `dart` · `tree-sitter` · `coding-agents`
 
 ## Why Connectome
 
 - **Token-efficient by design** — discovery returns names, signatures, and precise locations; source is retrieved only when needed.
 - **Fast local navigation** — one compact snapshot, in-memory lookups, bounded traversals, no database or background daemon.
-- **Semantic when available, resilient when not** — JDT LS and clojure-lsp enrich definitions and call paths; Tree-sitter remains a dependable fallback.
+- **Semantic when available, resilient when not** — JDT LS, clojure-lsp, TypeScript Language Server, rust-analyzer, and Dart LSP enrich definitions and call paths; Tree-sitter remains a dependable fallback.
 - **Correctly handles real code structure** — line-qualified Java overload selectors and Clojure multimethod dispatch preserve meaningful navigation paths.
 - **Agent-native MCP tools** — search symbols, trace callers/callees, fetch exact source ranges, and inspect the index without broad shell search.
 - **Release-ready** — CI verifies format, linting, tests, and release builds across Linux, macOS, and Windows.
@@ -63,15 +63,18 @@ The first release focuses on the operations that replace the most expensive file
 - `trace_calls` — bounded inbound or outbound call traversal
 - `get_overview` — language, symbol, and call counts
 
-LSPs are first-class semantic providers with a safe fallback. The default `auto` mode discovers `jdtls` and `clojure-lsp` on `PATH` (or uses `CONNECTOME_JDTLS_COMMAND` / `CONNECTOME_CLOJURE_LSP_COMMAND`), starts them over stdio, opens indexed documents, and uses `textDocument/definition` plus `callHierarchy/outgoingCalls` when advertised. If a server is unavailable, lacks a capability, or times out, the Tree-sitter/name-based index remains usable.
+LSPs are first-class semantic providers with a safe fallback. The default `auto` mode discovers a server only when that language is present: `jdtls`, `clojure-lsp`, `typescript-language-server --stdio`, `rust-analyzer`, or `dart language-server --protocol=lsp`. Set `CONNECTOME_JDTLS_COMMAND`, `CONNECTOME_CLOJURE_LSP_COMMAND`, `CONNECTOME_TYPESCRIPT_LSP_COMMAND`, `CONNECTOME_RUST_ANALYZER_COMMAND`, or `CONNECTOME_DART_LSP_COMMAND` to override discovery. If a server is unavailable, lacks a capability, or times out, the Tree-sitter/name-based index remains usable.
 
 ```bash
 ./target/release/connectome index /path/to/repository \
   --jdtls-command 'jdtls -data .connectome/jdtls' \
-  --clojure-lsp-command 'clojure-lsp listen'
+  --clojure-lsp-command 'clojure-lsp listen' \
+  --typescript-lsp-command 'typescript-language-server --stdio' \
+  --rust-analyzer-command 'rust-analyzer' \
+  --dart-lsp-command 'dart language-server --protocol=lsp'
 ```
 
-The same fields are available on the MCP `index_repository` tool as `jdtls_command`, `clojure_lsp_command`, and `lsp_timeout_ms`. Commands run from the repository root through `sh -c`; JDT LS normally needs a separate `-data` directory per repository. Use `--lsp-mode off` (or MCP `lsp_mode: "off"`) for parser-only indexing, or `--lsp-mode on` to request semantic providers and report missing-server warnings while retaining the fallback.
+The same fields are available on the MCP `index_repository` tool as `jdtls_command`, `clojure_lsp_command`, `typescript_lsp_command`, `rust_analyzer_command`, `dart_lsp_command`, and `lsp_timeout_ms`. Commands execute directly from the repository root; quote paths containing spaces. JDT LS normally needs a separate `-data` directory per repository. Use `--lsp-mode off` (or MCP `lsp_mode: "off"`) for parser-only indexing, or `--lsp-mode on` to request semantic providers and report missing-server warnings while retaining the fallback.
 
 It intentionally does not include a daemon, UI, embeddings, Cypher, infrastructure indexing, or dozens of language grammars. The graph is loaded directly from one binary snapshot, so queries are in-memory scans or adjacency traversals with no service dependency.
 

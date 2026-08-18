@@ -1,4 +1,5 @@
 mod clojure;
+mod generic;
 mod java;
 
 use crate::model::{ExtractedFile, Language};
@@ -9,6 +10,10 @@ pub fn detect(path: &Path) -> Option<Language> {
     match path.extension()?.to_str()? {
         "java" => Some(Language::Java),
         "clj" | "cljs" | "cljc" | "edn" => Some(Language::Clojure),
+        "js" | "jsx" | "mjs" | "cjs" => Some(Language::JavaScript),
+        "ts" | "tsx" | "mts" | "cts" => Some(Language::TypeScript),
+        "rs" => Some(Language::Rust),
+        "dart" => Some(Language::Dart),
         _ => None,
     }
 }
@@ -30,6 +35,10 @@ pub fn extract(root: &Path, path: &Path, language: Language) -> Result<Extracted
     let mut extracted = match language {
         Language::Java => java::extract(relative, &source)?,
         Language::Clojure => clojure::extract(relative, &source)?,
+        Language::JavaScript => generic::extract_javascript(relative, &source)?,
+        Language::TypeScript => generic::extract_typescript(relative, &source, path)?,
+        Language::Rust => generic::extract_rust(relative, &source)?,
+        Language::Dart => generic::extract_dart(relative, &source)?,
     };
     extracted.modified_ns = modified_ns;
     Ok(extracted)

@@ -64,6 +64,18 @@ fn call_tool(params: &Value) -> Result<Value> {
                     .get("clojure_lsp_command")
                     .and_then(Value::as_str)
                     .map(str::to_owned),
+                typescript_lsp_command: args
+                    .get("typescript_lsp_command")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                rust_analyzer_command: args
+                    .get("rust_analyzer_command")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                dart_lsp_command: args
+                    .get("dart_lsp_command")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
                 lsp_timeout_ms: args
                     .get("lsp_timeout_ms")
                     .and_then(Value::as_u64)
@@ -148,8 +160,8 @@ fn tools() -> Vec<Value> {
     vec![
         tool(
             "index_repository",
-            "Index Java and Clojure sources into a compact local graph",
-            json!({"type":"object","properties":{"path":{"type":"string"},"jdtls_command":{"type":"string","description":"Optional command, for example jdtls -data .connectome/jdtls"},"clojure_lsp_command":{"type":"string","description":"Optional command, for example clojure-lsp listen"},"lsp_mode":{"type":"string","enum":["auto","on","off"],"default":"auto"},"lsp_timeout_ms":{"type":"integer","default":5000}},"required":["path"]}),
+            "Index Java, Clojure, JavaScript, TypeScript, Rust, and Dart sources into a compact local graph",
+            json!({"type":"object","properties":{"path":{"type":"string"},"jdtls_command":{"type":"string"},"clojure_lsp_command":{"type":"string"},"typescript_lsp_command":{"type":"string","description":"Optional command, for example typescript-language-server --stdio"},"rust_analyzer_command":{"type":"string","description":"Optional command, for example rust-analyzer"},"dart_lsp_command":{"type":"string","description":"Optional command, for example dart language-server --protocol=lsp"},"lsp_mode":{"type":"string","enum":["auto","on","off"],"default":"auto"},"lsp_timeout_ms":{"type":"integer","default":5000}},"required":["path"]}),
         ),
         tool(
             "search_symbols",

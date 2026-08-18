@@ -30,6 +30,15 @@ enum Command {
         /// Shell command used to start clojure-lsp.
         #[arg(long)]
         clojure_lsp_command: Option<String>,
+        /// Shell command used to start TypeScript Language Server.
+        #[arg(long)]
+        typescript_lsp_command: Option<String>,
+        /// Shell command used to start rust-analyzer.
+        #[arg(long)]
+        rust_analyzer_command: Option<String>,
+        /// Shell command used to start the Dart SDK language server.
+        #[arg(long)]
+        dart_lsp_command: Option<String>,
         /// Per-request LSP timeout in milliseconds.
         #[arg(long, default_value_t = 5000)]
         lsp_timeout_ms: u64,
@@ -59,12 +68,18 @@ fn main() -> Result<()> {
             path,
             jdtls_command,
             clojure_lsp_command,
+            typescript_lsp_command,
+            rust_analyzer_command,
+            dart_lsp_command,
             lsp_timeout_ms,
             lsp_mode,
         } => {
             let options = indexer::BuildOptions {
                 jdtls_command,
                 clojure_lsp_command,
+                typescript_lsp_command,
+                rust_analyzer_command,
+                dart_lsp_command,
                 lsp_timeout_ms,
                 lsp_mode: lsp::parse_mode(&lsp_mode)?,
             };
