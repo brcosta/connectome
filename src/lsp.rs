@@ -148,11 +148,7 @@ pub fn resolve_calls(
                 let Some(target_path) = uri_to_path(&target_uri) else {
                     continue;
                 };
-                let relative = target_path
-                    .strip_prefix(root)
-                    .unwrap_or(&target_path)
-                    .to_string_lossy()
-                    .replace('\\', "/");
+                let relative = relative_path(root, &target_path);
                 if let Some(target) = find_symbol(files, symbols, &relative, target_line) {
                     call.target = Some(target.id);
                     call.semantic = true;
@@ -204,11 +200,7 @@ pub fn resolve_calls(
                     let Some(target_path) = uri_to_path(&target_uri) else {
                         continue;
                     };
-                    let relative = target_path
-                        .strip_prefix(root)
-                        .unwrap_or(&target_path)
-                        .to_string_lossy()
-                        .replace('\\', "/");
+                    let relative = relative_path(root, &target_path);
                     let Some(target_symbol) = find_symbol(files, symbols, &relative, target_line)
                     else {
                         continue;
@@ -563,6 +555,20 @@ fn path_to_uri(path: &Path) -> String {
     }
 }
 
+fn relative_path(root: &Path, path: &Path) -> String {
+    let root = normalized_path(root);
+    let path = normalized_path(path);
+    path.strip_prefix(root.trim_end_matches('/'))
+        .unwrap_or(&path)
+        .trim_start_matches('/')
+        .to_owned()
+}
+
+fn normalized_path(path: &Path) -> String {
+    let path = path.to_string_lossy().replace('\\', "/");
+    path.strip_prefix("//?/").unwrap_or(&path).to_owned()
+}
+
 fn uri_to_path(uri: &str) -> Option<PathBuf> {
     let mut path = uri.strip_prefix("file://")?.replace("%20", " ");
     if cfg!(windows) && path.starts_with('/') && path.as_bytes().get(2) == Some(&b':') {
@@ -604,6 +610,17 @@ mod tests {
         assert_eq!(
             path_to_uri(Path::new(r"\\?\C:\workspace\Main.java")),
             "file:///C:/workspace/Main.java"
+        );
+    }
+
+    #[test]
+    fn matches_extended_windows_roots_with_standard_lsp_paths() {
+        assert_eq!(
+            relative_path(
+                Path::new(r"\\?\C:\workspace"),
+                Path::new(r"C:\workspace\src\Main.java")
+            ),
+            "src/Main.java"
         );
     }
 
