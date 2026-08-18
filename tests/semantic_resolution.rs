@@ -22,7 +22,8 @@ fn run_index(binary: &Path, root: &Path, mode: &str, commands: bool) -> Value {
     command.args(["index", root.to_str().unwrap(), "--lsp-mode", mode]);
     if commands {
         let fake = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/semantic_fake_lsp.py");
-        let value = format!("python3 {}", fake.display());
+        let python = if cfg!(windows) { "python" } else { "python3" };
+        let value = format!("{python} {}", fake.display());
         command
             .arg("--jdtls-command")
             .arg(&value)
