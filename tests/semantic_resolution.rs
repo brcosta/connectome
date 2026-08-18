@@ -60,7 +60,10 @@ fn semantic_servers_improve_ambiguous_resolution_and_fallback_cleanly() {
     assert_eq!(warm["incremental"]["reused"], 5);
 
     let semantic = run_index(&binary, &root, "on", true);
-    assert_eq!(semantic["lsp"]["resolved"], 3);
+    assert_eq!(
+        semantic["lsp"]["resolved"], 3,
+        "semantic LSP fixture did not resolve calls: {semantic}"
+    );
     assert!(semantic["lsp"]["capabilities"].as_array().unwrap().len() >= 4);
     assert!(semantic["lsp"]["call_hierarchy"].as_u64().unwrap() >= 1);
     assert!(semantic["calls"]["resolved"].as_u64().unwrap() >= 3);
