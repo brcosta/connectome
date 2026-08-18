@@ -45,6 +45,45 @@ Running `connectome` with no subcommand starts an MCP server over standard input
 
 Every query tool accepts an optional `path`. If omitted, it uses the MCP process working directory. Indexes live inside the target repository and should normally remain uncommitted.
 
+## Install in coding agents
+
+Build the release binary first and substitute its absolute path below:
+
+```bash
+cargo build --release
+CONNECTOME_BIN="$(pwd)/target/release/connectome"
+```
+
+### Codex
+
+Add Connectome to your Codex user configuration, then verify that it is registered:
+
+```bash
+codex mcp add connectome -- "$CONNECTOME_BIN"
+codex mcp get connectome
+```
+
+To make the server project-specific instead, add the following to `.codex/config.toml`:
+
+```toml
+[mcp_servers.connectome]
+command = "/absolute/path/to/connectome"
+cwd = "/absolute/path/to/repository-to-analyze"
+```
+
+### Claude Code
+
+Install it for the current project (shared through `.mcp.json`) or for your user account:
+
+```bash
+claude mcp add --scope project connectome -- "$CONNECTOME_BIN"
+# Or: claude mcp add --scope user connectome -- "$CONNECTOME_BIN"
+claude mcp get connectome
+```
+
+Both clients start Connectome as a local stdio MCP server. Use the client's
+normal MCP view (`/mcp` in Claude Code) to confirm the server is connected.
+
 ## Design for low token use
 
 Search responses use four fields only: qualified name, kind, `file:line`, and a whitespace-compacted signature. Source is returned only by `get_symbol`. All listing and traversal tools have conservative default limits and hard caps. This makes the cheap discovery response the default and turns source retrieval into an explicit second step.
