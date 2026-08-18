@@ -547,10 +547,15 @@ fn location_from_value(location: &Value) -> Option<(String, u32)> {
 }
 
 fn path_to_uri(path: &Path) -> String {
-    let path = path
+    let mut path = path
         .to_string_lossy()
         .replace('\\', "/")
         .replace(' ', "%20");
+    // Rust may expose temporary Windows paths with the extended-length `\\\\?\\`
+    // prefix. LSP file URIs must use the normal drive form instead.
+    if let Some(normalized) = path.strip_prefix("//?/") {
+        path = normalized.to_owned();
+    }
     if path.starts_with('/') {
         format!("file://{path}")
     } else {
@@ -590,6 +595,14 @@ mod tests {
     fn uses_standard_windows_file_uri_shape() {
         assert_eq!(
             path_to_uri(Path::new(r"C:\workspace\Main.java")),
+            "file:///C:/workspace/Main.java"
+        );
+    }
+
+    #[test]
+    fn removes_windows_extended_path_prefix_from_file_uris() {
+        assert_eq!(
+            path_to_uri(Path::new(r"\\?\C:\workspace\Main.java")),
             "file:///C:/workspace/Main.java"
         );
     }
