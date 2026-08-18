@@ -273,18 +273,76 @@ fn effective_command(
 }
 
 fn command_exists(executable: &str) -> bool {
-    std::process::Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "command -v {} >/dev/null 2>&1",
-            shell_quote(executable)
-        ))
-        .status()
-        .is_ok_and(|status| status.success())
+    let candidate = Path::new(executable);
+    if candidate.components().count() > 1 {
+        return candidate.is_file();
+    }
+    let extensions: Vec<String> = if cfg!(windows) {
+        std::env::var("PATHEXT")
+            .unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_owned())
+            .split(';')
+            .map(|extension| extension.to_ascii_lowercase())
+            .collect()
+    } else {
+        vec![String::new()]
+    };
+    std::env::var_os("PATH").is_some_and(|paths| {
+        std::env::split_paths(&paths).any(|directory| {
+            extensions.iter().any(|extension| {
+                let name = if extension.is_empty() || executable.ends_with(extension) {
+                    executable.to_owned()
+                } else {
+                    format!("{executable}{extension}")
+                };
+                directory.join(name).is_file()
+            })
+        })
+    })
 }
 
-fn shell_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\\''"))
+fn command_parts(command: &str) -> Result<Vec<String>> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut quote = None;
+    let mut escaped = false;
+    for character in command.chars() {
+        if escaped {
+            current.push(character);
+            escaped = false;
+            continue;
+        }
+        if character == '\\' && quote != Some('\'') {
+            escaped = true;
+            continue;
+        }
+        if matches!(character, '\'' | '\"') {
+            if quote == Some(character) {
+                quote = None;
+            } else if quote.is_none() {
+                quote = Some(character);
+            } else {
+                current.push(character);
+            }
+            continue;
+        }
+        if character.is_whitespace() && quote.is_none() {
+            if !current.is_empty() {
+                parts.push(std::mem::take(&mut current));
+            }
+            continue;
+        }
+        current.push(character);
+    }
+    if escaped || quote.is_some() {
+        anyhow::bail!("invalid LSP command: unmatched quote or escape")
+    }
+    if !current.is_empty() {
+        parts.push(current);
+    }
+    if parts.is_empty() {
+        anyhow::bail!("invalid LSP command: command is empty")
+    }
+    Ok(parts)
 }
 
 fn find_symbol<'a>(
@@ -341,9 +399,12 @@ struct Client {
 
 impl Client {
     fn start(command: &str, root: &Path, timeout_ms: u64) -> Result<Self> {
-        let mut child = Command::new("sh")
-            .arg("-c")
-            .arg(command)
+        let parts = command_parts(command)?;
+        let (program, arguments) = parts
+            .split_first()
+            .context("invalid LSP command: command is empty")?;
+        let mut child = Command::new(program)
+            .args(arguments)
             .current_dir(root)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -511,5 +572,13 @@ mod tests {
     fn round_trips_basic_file_uri() {
         let path = Path::new("/tmp/a file.java");
         assert_eq!(uri_to_path(&path_to_uri(path)), Some(path.to_path_buf()));
+    }
+
+    #[test]
+    fn parses_quoted_lsp_commands_without_a_shell() {
+        assert_eq!(
+            command_parts("java -jar '/opt/LSP Servers/server.jar' --stdio").unwrap(),
+            vec!["java", "-jar", "/opt/LSP Servers/server.jar", "--stdio"]
+        );
     }
 }
