@@ -29,7 +29,8 @@ fn run_index(binary: &Path, root: &Path, mode: &str, commands: bool) -> Value {
             .arg(&value)
             .arg("--clojure-lsp-command")
             .arg(&value)
-            .args(["--lsp-timeout-ms", "1000"]);
+            // Windows runners can need more than one second to cold-start Python.
+            .args(["--lsp-timeout-ms", "5000"]);
     }
     let output = command.output().unwrap();
     assert!(
