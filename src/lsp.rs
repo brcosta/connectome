@@ -546,11 +546,22 @@ fn location_from_value(location: &Value) -> Option<(String, u32)> {
 }
 
 fn path_to_uri(path: &Path) -> String {
-    format!("file://{}", path.to_string_lossy().replace(' ', "%20"))
+    let path = path
+        .to_string_lossy()
+        .replace('\\', "/")
+        .replace(' ', "%20");
+    if path.starts_with('/') {
+        format!("file://{path}")
+    } else {
+        format!("file:///{path}")
+    }
 }
 
 fn uri_to_path(uri: &str) -> Option<PathBuf> {
-    let path = uri.strip_prefix("file://")?.replace("%20", " ");
+    let mut path = uri.strip_prefix("file://")?.replace("%20", " ");
+    if cfg!(windows) && path.starts_with('/') && path.as_bytes().get(2) == Some(&b':') {
+        path.remove(0);
+    }
     Some(PathBuf::from(path))
 }
 
@@ -572,6 +583,14 @@ mod tests {
     fn round_trips_basic_file_uri() {
         let path = Path::new("/tmp/a file.java");
         assert_eq!(uri_to_path(&path_to_uri(path)), Some(path.to_path_buf()));
+    }
+
+    #[test]
+    fn uses_standard_windows_file_uri_shape() {
+        assert_eq!(
+            path_to_uri(Path::new(r"C:\workspace\Main.java")),
+            "file:///C:/workspace/Main.java"
+        );
     }
 
     #[test]

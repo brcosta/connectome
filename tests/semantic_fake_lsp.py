@@ -28,12 +28,17 @@ def location(uri, line):
     return {"uri": uri, "range": {"start": {"line": line, "character": 0}, "end": {"line": line, "character": 1}}}
 
 
+def file_uri(path):
+    path = path.replace("\\", "/")
+    return "file://" + path if path.startswith("/") else "file:///" + path
+
+
 def target_for(uri, line):
     root = os.getcwd()
     if "/java/" in uri:
-        target = "file://" + os.path.join(root, "java/app/Formatter.java")
+        target = file_uri(os.path.join(root, "java/app/Formatter.java"))
         return target, (1 if line == 4 else 5)
-    target = "file://" + os.path.join(root, "clojure/app/impl.clj")
+    target = file_uri(os.path.join(root, "clojure/app/impl.clj"))
     return target, 1
 
 
