@@ -31,6 +31,19 @@ then answers navigation questions with the smallest useful payload.
 - **Agent-native MCP tools** — search symbols, trace callers/callees, fetch exact source ranges, and inspect the index without broad shell search.
 - **Release-ready** — CI verifies format, linting, tests, and release builds across Linux, macOS, and Windows.
 
+## Supported languages
+
+| Language | Indexed files | Parser fallback | Optional semantic provider |
+| --- | --- | --- | --- |
+| Java | `.java` | classes, methods, overload-aware calls | Eclipse JDT LS (`jdtls`) |
+| Clojure | `.clj`, `.cljs`, `.cljc`, `.edn` | namespaces, functions, multimethods | `clojure-lsp listen` |
+| JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs` | functions, classes, methods, calls | TypeScript Language Server |
+| TypeScript | `.ts`, `.tsx`, `.mts`, `.cts` | functions, classes, interfaces, types, calls | TypeScript Language Server |
+| Rust | `.rs` | modules, structs, enums, traits, impls, calls | `rust-analyzer` |
+| Dart | `.dart` | classes, mixins, extensions, functions, calls | `dart language-server --protocol=lsp` |
+
+Every supported language works without an installed LSP. Install a semantic provider when you want type-aware definition resolution and call hierarchy enrichment.
+
 ## What agents can ask
 
 | Need | Connectome tool | Response shape |
@@ -164,7 +177,7 @@ The language boundary is isolated under `src/languages/`. Adding another Tree-si
 
 ## Current resolution limits
 
-Without LSP, call resolution is intentionally conservative. A call resolves when its name has one indexed definition, or when one candidate is in the caller's file. With JDT LS or clojure-lsp enabled, Connectome asks the server for definitions at call positions and enriches the graph with outgoing call-hierarchy edges. This improves Java overload/type resolution and Clojure namespace/alias resolution where the server supports them. Unresolved call sites remain in the index and are included in overview counts, but are omitted from graph traversal.
+Without LSP, call resolution is intentionally conservative. A call resolves when its name has one indexed definition, or when one candidate is in the caller's file. With a language server enabled, Connectome asks for definitions at call positions and enriches the graph with outgoing call-hierarchy edges. This improves Java overload/type resolution, Clojure namespace/alias resolution, and type-aware navigation for JavaScript, TypeScript, Rust, and Dart where the server supports it. Unresolved call sites remain in the index and are included in overview counts, but are omitted from graph traversal.
 
 ## Performance checks
 
@@ -174,7 +187,7 @@ The semantic strategy is covered by an integration test with a deterministic loc
 cargo test --all-targets
 ```
 
-The test lives in [tests/semantic_resolution.rs](tests/semantic_resolution.rs); its fake server is [tests/semantic_fake_lsp.py](tests/semantic_fake_lsp.py). Real JDT LS and clojure-lsp are intentionally not required for CI.
+The test lives in [tests/semantic_resolution.rs](tests/semantic_resolution.rs); its fake server is [tests/semantic_fake_lsp.py](tests/semantic_fake_lsp.py). Real language servers are intentionally not required for CI. Parser fixtures cover JavaScript/TypeScript, Rust, and Dart without downloading their SDKs.
 
 Use the shell's `time` command around a release build index operation, then inspect the emitted `index_ms` and snapshot size:
 
@@ -183,4 +196,4 @@ time ./target/release/connectome index /path/to/repository
 du -h /path/to/repository/.connectome/index.bin
 ```
 
-The indexer already skips parsing files whose size and nanosecond modification time match the previous snapshot. The acceptance target for the next milestone is to benchmark cold full indexing, warm incremental indexing, snapshot size, query p50/p95, and serialized response bytes on representative Java and Clojure repositories.
+The indexer already skips parsing files whose size and nanosecond modification time match the previous snapshot. The acceptance target for the next milestone is to benchmark cold full indexing, warm incremental indexing, snapshot size, query p50/p95, and serialized response bytes on representative repositories for every supported language.
