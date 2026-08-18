@@ -1,0 +1,12 @@
+{
+  "spring-boot": {
+    "url": "https://github.com/spring-projects/spring-boot.git",
+    "commit": "e3d4b1ceb6d8971936f484bae39c7d6659a81c7f",
+    "tasks": "tasks/spring-boot.jsonl"
+  },
+  "kit": {
+    "url": "https://github.com/kit-clj/kit.git",
+    "commit": "47c1d8e6d6f155b67c7fdc1891242e11693e81dd",
+    "tasks": "tasks/kit.jsonl"
+  }
+}

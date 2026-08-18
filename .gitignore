@@ -1,0 +1,9 @@
+/target/
+.DS_Store
+__pycache__/
+*.py[cod]
+**/.connectome/
+/.lsp/
+/.clj-kondo/
+/benchmark/runs/
+/benchmark/fixtures/

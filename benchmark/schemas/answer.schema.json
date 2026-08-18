@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answer", "evidence", "confidence", "unresolved"],
+  "properties": {
+    "answer": {"type": "string"},
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "line", "symbol", "claim"],
+        "properties": {
+          "path": {"type": "string"},
+          "line": {"type": "integer", "minimum": 1},
+          "symbol": {"type": "string"},
+          "claim": {"type": "string"}
+        }
+      }
+    },
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "unresolved": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,75 @@
+# Connectome
+
+Connectome is a deliberately small code-intelligence MCP server. It indexes Java and Clojure into a compact local call graph and returns bounded, signature-first responses to coding agents.
+
+The first release focuses on the operations that replace the most expensive file-by-file exploration:
+
+- `index_repository` — parallel Tree-sitter indexing into `.connectome/index.bin`, reusing unchanged file fragments
+- `search_symbols` — ranked symbol names, locations, and compact signatures
+- `get_symbol` — the exact source range for one symbol
+- `trace_calls` — bounded inbound or outbound call traversal
+- `get_overview` — language, symbol, and call counts
+
+LSPs are first-class semantic providers with a safe fallback. The default `auto` mode discovers `jdtls` and `clojure-lsp` on `PATH` (or uses `CONNECTOME_JDTLS_COMMAND` / `CONNECTOME_CLOJURE_LSP_COMMAND`), starts them over stdio, opens indexed documents, and uses `textDocument/definition` plus `callHierarchy/outgoingCalls` when advertised. If a server is unavailable, lacks a capability, or times out, the Tree-sitter/name-based index remains usable.
+
+```bash
+./target/release/connectome index /path/to/repository \
+  --jdtls-command 'jdtls -data .connectome/jdtls' \
+  --clojure-lsp-command 'clojure-lsp listen'
+```
+
+The same fields are available on the MCP `index_repository` tool as `jdtls_command`, `clojure_lsp_command`, and `lsp_timeout_ms`. Commands run from the repository root through `sh -c`; JDT LS normally needs a separate `-data` directory per repository. Use `--lsp-mode off` (or MCP `lsp_mode: "off"`) for parser-only indexing, or `--lsp-mode on` to request semantic providers and report missing-server warnings while retaining the fallback.
+
+It intentionally does not include a daemon, UI, embeddings, Cypher, infrastructure indexing, or dozens of language grammars. The graph is loaded directly from one binary snapshot, so queries are in-memory scans or adjacency traversals with no service dependency.
+
+## Build and use
+
+```bash
+cargo build --release
+./target/release/connectome index /path/to/repository
+./target/release/connectome search greet --path /path/to/repository
+./target/release/connectome overview /path/to/repository
+```
+
+Running `connectome` with no subcommand starts an MCP server over standard input/output. Example client configuration:
+
+```json
+{
+  "mcpServers": {
+    "connectome": {
+      "command": "/absolute/path/to/connectome"
+    }
+  }
+}
+```
+
+Every query tool accepts an optional `path`. If omitted, it uses the MCP process working directory. Indexes live inside the target repository and should normally remain uncommitted.
+
+## Design for low token use
+
+Search responses use four fields only: qualified name, kind, `file:line`, and a whitespace-compacted signature. Source is returned only by `get_symbol`. All listing and traversal tools have conservative default limits and hard caps. This makes the cheap discovery response the default and turns source retrieval into an explicit second step.
+
+The language boundary is isolated under `src/languages/`. Adding another Tree-sitter grammar requires extension detection plus an extractor that emits the language-neutral `LocalSymbol` and `LocalCall` records; storage, resolution, MCP, and queries remain unchanged. LSP discovery, transport, capability checks, and fallback behavior are isolated under `src/lsp.rs`.
+
+## Current resolution limits
+
+Without LSP, call resolution is intentionally conservative. A call resolves when its name has one indexed definition, or when one candidate is in the caller's file. With JDT LS or clojure-lsp enabled, Connectome asks the server for definitions at call positions and enriches the graph with outgoing call-hierarchy edges. This improves Java overload/type resolution and Clojure namespace/alias resolution where the server supports them. Unresolved call sites remain in the index and are included in overview counts, but are omitted from graph traversal.
+
+## Performance checks
+
+The semantic strategy is covered by an integration test with a deterministic local LSP. It exercises ambiguous Java overloads, duplicate Clojure definitions resolved through a namespace alias, warm incremental reuse, and unavailable-server fallback:
+
+```bash
+cargo test --all-targets
+```
+
+The test lives in [tests/semantic_resolution.rs](tests/semantic_resolution.rs); its fake server is [tests/semantic_fake_lsp.py](tests/semantic_fake_lsp.py). Real JDT LS and clojure-lsp are intentionally not required for CI.
+
+Use the shell's `time` command around a release build index operation, then inspect the emitted `index_ms` and snapshot size:
+
+```bash
+time ./target/release/connectome index /path/to/repository
+du -h /path/to/repository/.connectome/index.bin
+```
+
+The indexer already skips parsing files whose size and nanosecond modification time match the previous snapshot. The acceptance target for the next milestone is to benchmark cold full indexing, warm incremental indexing, snapshot size, query p50/p95, and serialized response bytes on representative Java and Clojure repositories.

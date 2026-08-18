@@ -1,0 +1,4 @@
+# Copy this file and replace the placeholders with facts independently verified
+# from tests, an IDE, or manual review. Empty required_facts means manual score.
+{"id":"architecture","prompt":"Describe the repository's Java and Clojure entry points, the main components, and the principal call flow.","required_facts":[],"expected_files":[],"expected_symbols":[]}
+{"id":"impact","prompt":"Choose the most central public function or method. Identify its direct callers and the implementation boundary they reach. Explain any uncertainty.","required_facts":[],"expected_files":[],"expected_symbols":[]}
