@@ -311,7 +311,8 @@ fn command_parts(command: &str) -> Result<Vec<String>> {
             escaped = false;
             continue;
         }
-        if character == '\\' && quote != Some('\'') {
+        // Backslashes are path separators on Windows, not shell escapes.
+        if character == '\\' && !cfg!(windows) && quote != Some('\'') {
             escaped = true;
             continue;
         }
