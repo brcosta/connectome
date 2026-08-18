@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 description = "Small, fast code intelligence MCP for Java and Clojure"
 license = "MIT"
+repository = "https://github.com/brcosta/connectome"
+homepage = "https://github.com/brcosta/connectome"
+readme = "README.md"
+keywords = ["mcp", "java", "clojure", "code-intelligence", "lsp"]
+categories = ["development-tools", "command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0"

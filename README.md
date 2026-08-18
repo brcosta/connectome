@@ -1,6 +1,57 @@
 # Connectome
 
-Connectome is a deliberately small code-intelligence MCP server. It indexes Java and Clojure into a compact local call graph and returns bounded, signature-first responses to coding agents.
+<p align="center">
+  <strong>Fast semantic navigation for Java and Clojure coding agents.</strong><br />
+  A compact local MCP that replaces broad repository search with precise symbols, source ranges, and bounded call paths.
+</p>
+
+<p align="center">
+  <a href="https://github.com/brcosta/connectome/actions/workflows/ci.yml"><img src="https://github.com/brcosta/connectome/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="https://github.com/brcosta/connectome/releases"><img src="https://img.shields.io/github/v/release/brcosta/connectome?display_name=tag" alt="Latest release" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/languages-Java%20%7C%20Clojure-6f42c1" alt="Supported languages" />
+</p>
+
+> **Search less. Navigate with evidence. Spend fewer tokens.**
+
+Connectome is a small, local code-intelligence MCP server built for coding
+agents. It turns Java and Clojure repositories into a compact semantic index,
+then answers navigation questions with the smallest useful payload.
+
+`mcp` · `code-intelligence` · `java` · `clojure` · `tree-sitter` · `jdtls` · `clojure-lsp` · `coding-agents`
+
+## Why Connectome
+
+- **Token-efficient by design** — discovery returns names, signatures, and precise locations; source is retrieved only when needed.
+- **Fast local navigation** — one compact snapshot, in-memory lookups, bounded traversals, no database or background daemon.
+- **Semantic when available, resilient when not** — JDT LS and clojure-lsp enrich definitions and call paths; Tree-sitter remains a dependable fallback.
+- **Correctly handles real code structure** — line-qualified Java overload selectors and Clojure multimethod dispatch preserve meaningful navigation paths.
+- **Agent-native MCP tools** — search symbols, trace callers/callees, fetch exact source ranges, and inspect the index without broad shell search.
+- **Release-ready** — CI verifies format, linting, tests, and release builds across Linux, macOS, and Windows.
+
+## What agents can ask
+
+| Need | Connectome tool | Response shape |
+| --- | --- | --- |
+| Find a definition | `search_symbols` | compact name, kind, file:line, signature |
+| Select an overload | `search_symbols` → `trace_calls` | line-qualified symbol selector |
+| Understand a path | `trace_calls` | bounded, source-lined call edges |
+| Read evidence | `get_symbol` | exact source range only |
+| Inspect scope | `get_overview` | language, symbol, call, and LSP counts |
+
+## Quick start
+
+```bash
+git clone https://github.com/brcosta/connectome.git
+cd connectome
+cargo build --release
+
+# Build a semantic index for a repository
+./target/release/connectome index /path/to/repository
+
+# Start the local stdio MCP server
+./target/release/connectome serve
+```
 
 The first release focuses on the operations that replace the most expensive file-by-file exploration:
 
@@ -83,6 +134,22 @@ claude mcp get connectome
 
 Both clients start Connectome as a local stdio MCP server. Use the client's
 normal MCP view (`/mcp` in Claude Code) to confirm the server is connected.
+
+## Releases and versioning
+
+Connectome follows semantic versioning. The package version in `Cargo.toml`
+and the release tag must agree: `v0.1.0` corresponds to version `0.1.0`.
+
+- Every push and pull request runs formatting, Clippy, tests, and a release build.
+- Pushing a tag matching `v*` validates that version and creates a GitHub Release.
+- Releases include Linux, macOS (Intel and Apple Silicon), and Windows archives with SHA-256 checksums.
+
+To publish a release after updating `Cargo.toml` and `CHANGELOG.md`:
+
+```bash
+git tag -a v0.1.0 -m "Connectome v0.1.0"
+git push origin v0.1.0
+```
 
 ## Design for low token use
 
