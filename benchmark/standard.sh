@@ -46,10 +46,23 @@ echo "Benchmarking Kit" >&2
   --output "$output_root/kit" \
   "${common[@]}" "$@"
 
+for fixture in flutter-view algorithms-javascript algorithms-typescript connectome-rust; do
+  echo "Benchmarking $fixture slice" >&2
+  "$benchmark_dir/run.sh" \
+    --target "$benchmark_dir/fixtures/slices/$fixture" \
+    --tasks "$benchmark_dir/tasks/$fixture.jsonl" \
+    --output "$output_root/$fixture" \
+    "${common[@]}" "$@"
+done
+
 echo "Reports:" >&2
 if [[ " $* " == *" --dry-run "* ]]; then
   echo "Dry run completed; no reports were created."
 else
   echo "$output_root/spring-boot"/*/report.md
   echo "$output_root/kit"/*/report.md
+  echo "$output_root/flutter-view"/*/report.md
+  echo "$output_root/algorithms-javascript"/*/report.md
+  echo "$output_root/algorithms-typescript"/*/report.md
+  echo "$output_root/connectome-rust"/*/report.md
 fi

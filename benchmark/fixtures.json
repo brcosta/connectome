@@ -8,5 +8,20 @@
     "url": "https://github.com/kit-clj/kit.git",
     "commit": "47c1d8e6d6f155b67c7fdc1891242e11693e81dd",
     "tasks": "tasks/kit.jsonl"
+  },
+  "flutter-view": {
+    "url": "https://github.com/flutter/flutter.git",
+    "commit": "7c08f438078412382ed0a3ba447995a9efa54710",
+    "tasks": "tasks/flutter-view.jsonl"
+  },
+  "algorithms-javascript": {
+    "url": "https://github.com/TheAlgorithms/JavaScript.git",
+    "commit": "5c39e87a9a31f279c60f830ad74a845e4788a517",
+    "tasks": "tasks/algorithms-javascript.jsonl"
+  },
+  "algorithms-typescript": {
+    "url": "https://github.com/TheAlgorithms/TypeScript.git",
+    "commit": "19b4ced86c99815f142d4a46a028f55487b8038a",
+    "tasks": "tasks/algorithms-typescript.jsonl"
   }
 }

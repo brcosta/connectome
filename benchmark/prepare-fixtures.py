@@ -64,6 +64,9 @@ def copy_slice(repository: str, source_root: Path, destination_root: Path, files
 def prepare_slices() -> None:
     spring = FIXTURE_ROOT / "spring-boot"
     kit = FIXTURE_ROOT / "kit"
+    flutter = FIXTURE_ROOT / "flutter-view"
+    javascript = FIXTURE_ROOT / "algorithms-javascript"
+    typescript = FIXTURE_ROOT / "algorithms-typescript"
     copy_slice(
         "spring-boot",
         spring,
@@ -73,6 +76,42 @@ def prepare_slices() -> None:
                 "core/spring-boot/src/main/java/org/springframework/boot/SpringApplication.java",
                 "src/main/java/org/springframework/boot/SpringApplication.java",
             )
+        ],
+    )
+    copy_slice(
+        "flutter-view",
+        flutter,
+        SLICE_ROOT / "flutter-view",
+        [("examples/flutter_view/lib/main.dart", "lib/main.dart")],
+    )
+    copy_slice(
+        "TheAlgorithms/JavaScript Data-Structures",
+        javascript,
+        SLICE_ROOT / "algorithms-javascript",
+        [
+            ("Data-Structures/Linked-List/SinglyLinkedList.js", "linked-list/SinglyLinkedList.js"),
+            ("Data-Structures/Linked-List/ReverseSinglyLinkedList.js", "linked-list/ReverseSinglyLinkedList.js"),
+        ],
+    )
+    copy_slice(
+        "TheAlgorithms/TypeScript search",
+        typescript,
+        SLICE_ROOT / "algorithms-typescript",
+        [
+            ("search/exponential_search.ts", "search/exponential_search.ts"),
+            ("search/binary_search.ts", "search/binary_search.ts"),
+        ],
+    )
+    copy_slice(
+        "connectome",
+        ROOT.parent,
+        SLICE_ROOT / "connectome-rust",
+        [
+            ("src/indexer.rs", "src/indexer.rs"),
+            ("src/languages/mod.rs", "src/languages/mod.rs"),
+            ("src/languages/generic.rs", "src/languages/generic.rs"),
+            ("src/lsp.rs", "src/lsp.rs"),
+            ("src/model.rs", "src/model.rs"),
         ],
     )
     copy_slice(

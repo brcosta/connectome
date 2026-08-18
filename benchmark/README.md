@@ -13,10 +13,12 @@ Build Connectome first:
 cargo build --release
 ```
 
-## Standard Java and Clojure suite
+## Standard six-language suite
 
-The standard suite uses pinned shallow clones of Spring Boot and Kit, then
-copies a fixed small source slice from each into `benchmark/fixtures/slices/`.
+The standard suite uses pinned shallow clones of Spring Boot, Kit, Flutter,
+TheAlgorithms/JavaScript, and TheAlgorithms/TypeScript, plus a fixed Rust slice
+from Connectome itself. It copies only the selected source files into
+`benchmark/fixtures/slices/`.
 It compares only the native baseline with Connectome, using the included
 repository-specific task packs. The first invocation downloads the public
 repositories into ignored `benchmark/fixtures/` directories; later invocations
@@ -27,8 +29,9 @@ is intentionally kept in the slices and does not make a fixture invalid.
 ./benchmark/standard.sh
 ```
 
-The default is three serialized repetitions (twenty-four fresh Luna-high
-runs). Serial execution avoids one condition competing with another for the
+The default is three serialized repetitions (twenty-four fresh Luna-high runs
+for the original Java/Clojure tasks plus twenty-four for Dart, JavaScript,
+TypeScript, and Rust). Serial execution avoids one condition competing with another for the
 same Codex service or local MCP process. Set `BENCHMARK_REPETITIONS=1` for a
 smoke test:
 
