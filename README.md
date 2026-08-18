@@ -1,6 +1,8 @@
 # Connectome
 
 <p align="center">
+  <img src="assets/connectome-logo.png" width="260" alt="Connectome colorful fiber-network logo" />
+  <br />
   <strong>Fast semantic navigation for Java and Clojure coding agents.</strong><br />
   A compact local MCP that replaces broad repository search with precise symbols, source ranges, and bounded call paths.
 </p>
