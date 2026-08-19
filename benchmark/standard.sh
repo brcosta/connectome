@@ -30,6 +30,7 @@ common=(
   --connectome "$repository_root/target/release/connectome"
   --repetitions "${BENCHMARK_REPETITIONS:-3}"
   --jobs 1
+  --require-mcp-success
 )
 
 echo "Benchmarking Spring Boot" >&2

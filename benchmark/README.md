@@ -5,6 +5,16 @@ include another MCP server. Every task is a new non-interactive Codex session;
 the runner ignores normal user configuration, uses `gpt-5.6-luna` with `high`
 reasoning, and captures raw JSONL events plus a structured final answer.
 
+`--session-mode persistent` reuses one isolated Codex session per condition
+throughout a task pack, measuring amortized MCP setup cost. The default
+`fresh` mode preserves the strict one-session-per-question comparison.
+
+Run the JavaScript and TypeScript persistent-session gate with:
+
+```bash
+./benchmark/persistent.sh
+```
+
 ## Quick start
 
 Build Connectome first:
@@ -177,6 +187,7 @@ the structured answer has equal-or-better quality than the native baseline.
 --conditions native,connectome,legacy
 --index once|never|per-connectome-run
 --lsp-mode auto|on|off
+--session-mode fresh|persistent
 --sandbox read-only|workspace-write|danger-full-access
 --require-connectome-win  Require quality-preserving wins on tokens and latency
 --minimum-improvement 0.05 Required fractional margin for that gate

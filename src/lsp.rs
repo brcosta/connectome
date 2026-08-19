@@ -136,7 +136,7 @@ pub fn resolve_calls(
         } else {
             options.lsp_timeout_ms.max(250)
         };
-        let mut client = match Client::start(&command, root, timeout_ms) {
+        let mut client = match Client::start(&command, root, timeout_ms, language) {
             Ok(client) => client,
             Err(error) => {
                 result.warnings.push(format!("{label}: {error}"));
@@ -193,9 +193,17 @@ pub fn resolve_calls(
                 };
                 let relative = relative_path(root, &target_path);
                 if let Some(target) = find_symbol(files, symbols, &relative, target_line) {
-                    call.target = Some(target.id);
-                    call.semantic = true;
-                    result.resolved += 1;
+                    // Some LSPs resolve a member call at the receiver position
+                    // (`this` / an object) and return its enclosing class. Keep
+                    // the parser edge unless the semantic target names the
+                    // invoked symbol itself.
+                    if !matches!(language, Language::JavaScript | Language::TypeScript)
+                        || target.name == call.name
+                    {
+                        call.target = Some(target.id);
+                        call.semantic = true;
+                        result.resolved += 1;
+                    }
                 }
             }
         }
@@ -434,7 +442,7 @@ struct Client {
 }
 
 impl Client {
-    fn start(command: &str, root: &Path, timeout_ms: u64) -> Result<Self> {
+    fn start(command: &str, root: &Path, timeout_ms: u64, language: Language) -> Result<Self> {
         let parts = command_parts(command)?;
         let (program, arguments) = parts
             .split_first()
@@ -464,10 +472,14 @@ impl Client {
             next_id: 1,
             capabilities: json!({}),
         };
-        let initialize = client.request(
-            "initialize",
-            json!({"processId": std::process::id(), "rootUri": path_to_uri(root), "workspaceFolders": [{"uri": path_to_uri(root), "name": root.file_name().and_then(|v| v.to_str()).unwrap_or("workspace")}], "capabilities": {}}),
-        )?;
+        let mut initialize_params = json!({"processId": std::process::id(), "rootUri": path_to_uri(root), "workspaceFolders": [{"uri": path_to_uri(root), "name": root.file_name().and_then(|v| v.to_str()).unwrap_or("workspace")}], "capabilities": {}});
+        if matches!(language, Language::JavaScript | Language::TypeScript) {
+            if let Some(path) = typescript_server_path() {
+                initialize_params["initializationOptions"] =
+                    json!({"tsserver": {"fallbackPath": path}});
+            }
+        }
+        let initialize = client.request("initialize", initialize_params)?;
         client.capabilities = initialize
             .get("capabilities")
             .cloned()
@@ -519,6 +531,22 @@ impl Client {
         self.stdin.flush()?;
         Ok(())
     }
+}
+
+fn typescript_server_path() -> Option<String> {
+    if let Ok(path) = std::env::var("CONNECTOME_TSSERVER_PATH") {
+        if Path::new(&path).join("tsserver.js").is_file() {
+            return Some(path);
+        }
+    }
+    Command::new("npm")
+        .args(["root", "-g"])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|root| format!("{}/typescript/lib", root.trim()))
+        .filter(|path| Path::new(path).join("tsserver.js").is_file())
 }
 
 impl Drop for Client {

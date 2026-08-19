@@ -86,14 +86,23 @@ pub fn trace(
             if paths.len() >= limit {
                 break;
             }
-            paths.push(json!({"from": symbol_selector(&index.symbols[from as usize]), "to": symbol_selector(&index.symbols[to as usize]), "line": line, "depth": distance + 1}));
+            let caller = &index.symbols[from as usize];
+            let callee = &index.symbols[to as usize];
+            paths.push(json!({
+                "from": symbol_selector(caller),
+                "from_at": symbol_location(index, caller),
+                "to": symbol_selector(callee),
+                "to_at": symbol_location(index, callee),
+                "line": line,
+                "depth": distance + 1
+            }));
             if seen.insert(to) {
                 queue.push_back((to, distance + 1));
             }
         }
     }
     Ok(
-        json!({"start": symbol_selector(&index.symbols[start as usize]), "direction": direction, "paths": paths, "truncated": paths.len() >= limit}),
+        json!({"start": symbol_selector(&index.symbols[start as usize]), "start_at": symbol_location(index, &index.symbols[start as usize]), "direction": direction, "paths": paths, "truncated": paths.len() >= limit}),
     )
 }
 
@@ -171,11 +180,89 @@ fn symbol_row(index: &Index, symbol: &Symbol) -> Value {
         "name": symbol_selector(symbol),
         "display_name": symbol.qualified_name,
         "kind": symbol.kind,
-        "at": format!("{}:{}", index.files[symbol.file as usize].path, symbol.start_line),
+        "at": symbol_location(index, symbol),
         "sig": symbol.signature
     })
 }
 
+fn symbol_location(index: &Index, symbol: &Symbol) -> String {
+    format!(
+        "{}:{}",
+        index.files[symbol.file as usize].path, symbol.start_line
+    )
+}
+
 fn symbol_selector(symbol: &Symbol) -> String {
     format!("{}@{}", symbol.qualified_name, symbol.start_line)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{Call, FileRecord, Language};
+
+    fn index() -> Index {
+        Index {
+            version: 9,
+            root: "/repo".to_owned(),
+            files: vec![FileRecord {
+                path: "src/search.ts".to_owned(),
+                language: Language::TypeScript,
+                bytes: 0,
+                modified_ns: 0,
+            }],
+            symbols: vec![
+                Symbol {
+                    id: 0,
+                    name: "start".to_owned(),
+                    qualified_name: "start".to_owned(),
+                    kind: "function".to_owned(),
+                    file: 0,
+                    start_line: 4,
+                    end_line: 8,
+                    signature: "start()".to_owned(),
+                    parent: None,
+                },
+                Symbol {
+                    id: 1,
+                    name: "target".to_owned(),
+                    qualified_name: "target".to_owned(),
+                    kind: "function".to_owned(),
+                    file: 0,
+                    start_line: 12,
+                    end_line: 16,
+                    signature: "target()".to_owned(),
+                    parent: None,
+                },
+            ],
+            calls: vec![Call {
+                caller: 0,
+                target: Some(1),
+                name: "target".to_owned(),
+                line: 6,
+                column: 1,
+                receiver_is_instance: false,
+                semantic: false,
+                synthetic: false,
+            }],
+            elapsed_ms: 0,
+            parsed_files: 1,
+            reused_files: 0,
+            lsp_resolved: 0,
+            lsp_call_hierarchy: 0,
+            lsp_servers: vec![],
+            lsp_capabilities: vec![],
+            lsp_warnings: vec![],
+            lsp_mode: "off".to_owned(),
+        }
+    }
+
+    #[test]
+    fn trace_includes_caller_and_callee_locations() {
+        let value = trace(&index(), "start@4", "outbound", 1, 10).unwrap();
+        assert_eq!(value["start_at"], "src/search.ts:4");
+        assert_eq!(value["paths"][0]["from_at"], "src/search.ts:4");
+        assert_eq!(value["paths"][0]["to_at"], "src/search.ts:12");
+        assert_eq!(value["paths"][0]["line"], 6);
+    }
 }

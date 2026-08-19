@@ -90,7 +90,13 @@ def prepare_slices() -> None:
         SLICE_ROOT / "algorithms-javascript",
         [
             ("Data-Structures/Linked-List/SinglyLinkedList.js", "linked-list/SinglyLinkedList.js"),
-            ("Data-Structures/Linked-List/ReverseSinglyLinkedList.js", "linked-list/ReverseSinglyLinkedList.js"),
+            ("Data-Structures/Linked-List/DoublyLinkedList.js", "linked-list/DoublyLinkedList.js"),
+            ("Data-Structures/Linked-List/SinglyCircularLinkedList.js", "linked-list/SinglyCircularLinkedList.js"),
+            ("Data-Structures/Linked-List/CycleDetection.js", "linked-list/CycleDetection.js"),
+            ("Data-Structures/Linked-List/MergeTwoSortedLinkedLists.js", "linked-list/MergeTwoSortedLinkedLists.js"),
+            ("Data-Structures/Linked-List/test/SinglyLinkedList.test.js", "linked-list/test/SinglyLinkedList.test.js"),
+            ("Data-Structures/Linked-List/test/DoublyLinkedList.test.js", "linked-list/test/DoublyLinkedList.test.js"),
+            ("Data-Structures/Linked-List/test/CycleDetection.test.js", "linked-list/test/CycleDetection.test.js"),
         ],
     )
     copy_slice(
@@ -100,6 +106,18 @@ def prepare_slices() -> None:
         [
             ("search/exponential_search.ts", "search/exponential_search.ts"),
             ("search/binary_search.ts", "search/binary_search.ts"),
+            ("search/fibonacci_search.ts", "search/fibonacci_search.ts"),
+            ("search/interpolation_search.ts", "search/interpolation_search.ts"),
+            ("search/jump_search.ts", "search/jump_search.ts"),
+            ("search/linear_search.ts", "search/linear_search.ts"),
+            ("search/sentinel_search.ts", "search/sentinel_search.ts"),
+            ("search/test/exponential_search.test.ts", "search/test/exponential_search.test.ts"),
+            ("search/test/binary_search.test.ts", "search/test/binary_search.test.ts"),
+            ("search/test/fibonacci_search.test.ts", "search/test/fibonacci_search.test.ts"),
+            ("search/test/interpolation_search.test.ts", "search/test/interpolation_search.test.ts"),
+            ("search/test/jump_search.test.ts", "search/test/jump_search.test.ts"),
+            ("search/test/linear_search.test.ts", "search/test/linear_search.test.ts"),
+            ("search/test/sentinel_search.test.ts", "search/test/sentinel_search.test.ts"),
         ],
     )
     copy_slice(

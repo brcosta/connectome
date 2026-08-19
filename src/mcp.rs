@@ -31,7 +31,7 @@ fn dispatch(request: &Value) -> Value {
             "protocolVersion": "2025-03-26",
             "capabilities": {"tools": {}},
             "serverInfo": {"name": "connectome", "version": env!("CARGO_PKG_VERSION")},
-            "instructions": "For Java and Clojure navigation, prefer Connectome: use get_overview or search_symbols for discovery, get_symbol only for a required source range, and trace_calls for bounded call paths. Query tools are read-only. Use shell search only when a semantic query cannot answer the question."
+            "instructions": "For supported-language navigation, prefer Connectome: use get_overview or search_symbols for discovery, get_symbol only for a required source range, and trace_calls for bounded call paths. Trace rows include caller and callee definition locations plus the call-site line, so use them directly as evidence. Query tools are read-only. Use shell search only when a semantic query cannot answer the question."
         })),
         "ping" => Ok(json!({})),
         "tools/list" => Ok(json!({"tools": tools()})),
@@ -181,7 +181,7 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "trace_calls",
-            "Trace a small bounded inbound or outbound resolved call path. Use the exact line-qualified `name` returned by search_symbols to select an overload; prefer this over reading multiple symbol bodies",
+            "Trace a small bounded inbound or outbound resolved call path. Each edge includes caller/callee selectors, definition locations (`from_at`/`to_at`), and call-site `line`; use these directly as evidence. Use the exact line-qualified `name` returned by search_symbols to select an overload; prefer this over reading multiple symbol bodies",
             query_schema(
                 json!({"name":{"type":"string"},"direction":{"enum":["inbound","outbound"]},"depth":{"type":"integer","maximum":4,"default":2},"limit":{"type":"integer","maximum":25,"default":25}}),
                 vec!["name"],

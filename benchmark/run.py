@@ -292,7 +292,14 @@ def git_revision(path: Path) -> str | None:
     return completed.stdout.strip() if completed.returncode == 0 else None
 
 
-def run_one(args: argparse.Namespace, condition: str, task: Task, repetition: int, run_dir: Path) -> dict[str, Any]:
+def thread_id(events: list[dict[str, Any]]) -> str | None:
+    for event in events:
+        if event.get("type") == "thread.started" and isinstance(event.get("thread_id"), str):
+            return event["thread_id"]
+    return None
+
+
+def run_one(args: argparse.Namespace, condition: str, task: Task, repetition: int, run_dir: Path, session_id: str | None = None) -> tuple[dict[str, Any], str | None]:
     prefix = f"{condition}__{task.id}__r{repetition}"
     events_path = run_dir / f"{prefix}.jsonl"
     stderr_path = run_dir / f"{prefix}.stderr.log"
@@ -306,13 +313,16 @@ def run_one(args: argparse.Namespace, condition: str, task: Task, repetition: in
         "Treat the returned path rows as sufficient evidence and do not make further searches or "
         "fetch symbol bodies. If either call fails or cannot answer the question, use one focused "
         "shell search instead.\n\n"
+        "This is an independent benchmark question. Even if a prior turn discussed related "
+        "code, perform the two required semantic navigation calls again and do not reuse a "
+        "prior conclusion.\n\n"
         f"Question:\n{task.prompt}"
     )
-    command = [
-        args.codex,
-        "exec",
+    command = [args.codex, "exec"]
+    if session_id:
+        command += ["resume", session_id]
+    command += [
         "--ignore-user-config",
-        "--ephemeral",
         "--json",
         "--output-schema",
         str(args.schema),
@@ -324,13 +334,13 @@ def run_one(args: argparse.Namespace, condition: str, task: Task, repetition: in
         f"model_reasoning_effort={toml_string(args.reasoning)}",
         "-c",
         "approval_policy=\"never\"",
-        "-s",
-        args.sandbox,
-        "-C",
-        str(args.target),
         "--skip-git-repo-check",
     ]
-    command += condition_overrides(args, condition)
+    if not session_id:
+        if args.session_mode == "fresh":
+            command.append("--ephemeral")
+        command += ["-s", args.sandbox, "-C", str(args.target)]
+        command += condition_overrides(args, condition)
     command.append(prompt)
     started = time.monotonic()
     with events_path.open("w") as stdout, stderr_path.open("w") as stderr:
@@ -356,7 +366,7 @@ def run_one(args: argparse.Namespace, condition: str, task: Task, repetition: in
     metrics.update(mcp_call_counts(events))
     metrics.update(extract_usage(events))
     metrics.update(score_answer(answer, task))
-    return metrics
+    return metrics, thread_id(events)
 
 
 def median(values: list[int | float | None]) -> float | None:
@@ -455,9 +465,10 @@ def write_report(run_dir: Path, results: list[dict[str, Any]], manifest: dict[st
     if mcp_validation:
         preparation_lines += ["## MCP validation", ""]
         for item in mcp_validation:
-            status = "passed" if item["successful_calls"] else "failed"
+            missing_runs = item.get("missing_runs", 0)
+            status = "passed" if item["successful_calls"] and not missing_runs else "failed"
             preparation_lines.append(
-                f"- `{item['condition']}`: {status} ({item['successful_calls']} successful navigation calls)."
+                f"- `{item['condition']}`: {status} ({item['successful_calls']} successful navigation calls; {missing_runs} task(s) without navigation)."
             )
         preparation_lines.append("")
     lines = [
@@ -555,6 +566,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sandbox", choices=["read-only", "workspace-write", "danger-full-access"], default="read-only")
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--jobs", type=int, default=1, help="Maximum concurrent Codex runs")
+    parser.add_argument("--session-mode", choices=["fresh", "persistent"], default="fresh", help="Use a new Codex session for every task, or reuse one session per condition and repetition")
     parser.add_argument("--conditions", default="native,connectome", help="Comma-separated: native,connectome,legacy")
     parser.add_argument("--legacy-name", default="legacy_code_navigation")
     parser.add_argument("--legacy-label", default="legacy", help="Display name for the legacy condition in reports")
@@ -584,6 +596,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--repetitions must be positive")
     if args.jobs < 1:
         parser.error("--jobs must be positive")
+    if args.session_mode == "persistent" and args.jobs != 1:
+        parser.error("--session-mode persistent requires --jobs 1")
     if not 0 < args.minimum_improvement < 1:
         parser.error("--minimum-improvement must be between 0 and 1")
     return args
@@ -620,6 +634,7 @@ def main() -> None:
         "conditions": args.conditions,
         "task_count": len(tasks),
         "repetitions": args.repetitions,
+        "session_mode": args.session_mode,
         "index_mode": args.index,
         "lsp_mode": args.lsp_mode,
         "connectome": str(args.connectome),
@@ -645,14 +660,24 @@ def main() -> None:
                     run_index(args, run_dir / f"connectome-index__{task.id}__r{repetition}.json")
                 print(f"[{condition}] {task.id} repetition {repetition}", file=sys.stderr, flush=True)
                 work.append((condition, task))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as executor:
-            futures = [
-                executor.submit(run_one, args, condition, task, repetition, run_dir)
-                for condition, task in work
-            ]
-            for future in futures:
-                results.append(future.result())
+        if args.session_mode == "persistent":
+            sessions: dict[str, str] = {}
+            for condition, task in work:
+                result, session = run_one(args, condition, task, repetition, run_dir, sessions.get(condition))
+                if session:
+                    sessions[condition] = session
+                results.append(result)
                 (run_dir / "results.partial.json").write_text(json.dumps(results, indent=2) + "\n")
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as executor:
+                futures = [
+                    executor.submit(run_one, args, condition, task, repetition, run_dir)
+                    for condition, task in work
+                ]
+                for future in futures:
+                    result, _ = future.result()
+                    results.append(result)
+                    (run_dir / "results.partial.json").write_text(json.dumps(results, indent=2) + "\n")
     validation: list[dict[str, Any]] = []
     if args.require_mcp_success:
         for condition in args.conditions:
@@ -664,13 +689,16 @@ def main() -> None:
                 {
                     "condition": label,
                     "successful_calls": sum(row["mcp_navigation_successful_calls"] for row in condition_rows),
+                    "missing_runs": sum(
+                        row["mcp_navigation_successful_calls"] < 1 for row in condition_rows
+                    ),
                 }
             )
     manifest["mcp_validation"] = validation
     write_report(run_dir, results, manifest)
     print(run_dir / "report.md")
     failures = [row for row in results if row["exit_code"] != 0]
-    missing_mcp = [item for item in validation if not item["successful_calls"]]
+    missing_mcp = [item for item in validation if not item["successful_calls"] or item.get("missing_runs")]
     if missing_mcp:
         labels = ", ".join(item["condition"] for item in missing_mcp)
         print(f"No successful MCP calls for: {labels}; benchmark is invalid.", file=sys.stderr)
